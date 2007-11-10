@@ -2,11 +2,11 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
 
-AC_INIT([side], [0.5.0], [varuzza@gmail.com])
+AC_INIT([kempbasu], [0.5.0], [varuzza@gmail.com])
 
 dnl AM_PROG_CC_C_O
 
-AM_INIT_AUTOMAKE(side,0.5.0)
+AM_INIT_AUTOMAKE(kempbasu,0.5.0)
 
 AC_HEADER_STDC
 
