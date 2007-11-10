@@ -1,0 +1,157 @@
+#!/usr/bin/perl -W
+#
+# Copyright Leonardo Varuzza 2006 
+#
+# This file is licenced by GPLv3 License
+#
+
+use strict;
+
+# use make_table libfile1 libfile2 ...
+
+my %uniq_tags=();
+my @uniq_tags_rev;
+my $uniq_tags_count=0;
+
+sub process_file {
+    my $filename=$_;
+    my $first=1;
+    my %header;
+
+    open F,"<$filename";
+    my %table;
+    my $samples;
+    my $sample_name;
+    my $sample_title;
+    my @keywords;
+
+    while(<F>) {
+	s/\r//;
+	chomp;
+
+	# headers 
+	if(/^[\!\#\^]/) {
+	    if (/^\^SAMPLE/) {
+		my @parts=split("=");
+		$sample_name=trim($parts[1]);
+	    } 
+	    elsif(/^\!Sample_tag_count/) {
+		my @parts=split("=");
+
+		$samples=trim($parts[1]);
+	    }
+	    elsif(/^!Sample_title/) {
+		my @parts=split("=");
+		$sample_title=trim($parts[1]);
+	    }
+	    elsif(/^!Sample_description = Keywords/) {
+		my @parts=split("=");
+		push @keywords,trim($parts[2]);
+	    }
+	} 
+
+	# table
+	else {
+	    my @line=split("\t");
+
+	    # find columns positions in the input table
+
+	    if ($first) {
+		$first = 0;
+		my $i=0;
+		foreach(@line) {
+		    s/\W//g;
+		    $header{$_}=$i;
+		    $i++;
+		}
+		next;
+	    }
+
+	    #print STDERR $line[$header{TAG}],"\n";
+	    #next;
+
+	    my $tag   = $line[$header{TAG}];
+	    my $count = $line[$header{COUNT}];
+
+	    #print join(";",@line),"\n";
+	    
+ 	    if (!defined($uniq_tags{$tag})) {
+ 		$uniq_tags{$tag}=$uniq_tags_count++;
+		push @uniq_tags_rev,$tag;
+ 	    }
+	    $table{$uniq_tags{$tag}}=$count;
+	}
+    }
+
+    return {samples => $samples,
+	    name => $sample_name,
+	    title => $sample_title,
+	    keywords => \@keywords,
+	    data => \%table};
+}
+
+
+my @samples;
+my $sample;
+
+# Read headers and make tags hash
+
+foreach(@ARGV) {
+    print STDERR "File $_\n";
+    $sample=process_file($_);
+    print STDERR "\tSum of tags = ",$sample->{samples},"\n";
+    print STDERR "\tUnique tags = ",scalar(keys%{$sample->{data}}),"\n";
+    push @samples,$sample;
+}
+
+#
+# Write auxiliar files
+#
+
+print STDERR "Unique tags = ",scalar(@uniq_tags_rev),"\n";
+
+print "SAGE\t";
+print join("\t",
+	   map({$_->{name}} @samples)),"\n";
+
+print "tag_count\t";
+print join("\t",
+	   map({$_->{samples}} @samples)),"\n";
+
+open SI,">samples.info-gen.txt";
+
+print SI join("\n",map({$_->{name}."\tundefined_class\t".$_->{title}} @samples)),"\n";
+	      
+close SI;
+
+open KW,">keywords.txt";
+
+print KW join("\n",map({  join("\t",$_->{name},@{$_->{keywords}}) } @samples)),"\n";
+	      
+close KW;
+
+#
+# Print Matrix
+#
+
+for(my $i=0;$i<scalar(@uniq_tags_rev);$i++) {
+    my $tag=$uniq_tags_rev[$i];
+    print $tag,"\t";
+
+    print join("\t",map({
+	if (defined($_->{data}{$i})) {
+	    $_->{data}{$i}
+	} else {
+	    0;
+	}
+    } @samples)),"\n";
+}
+
+sub trim {
+    my $str=shift;
+
+    $str =~ s/^\s+//g;
+    $str =~ s/\s+$//g;
+
+    return $str;
+}

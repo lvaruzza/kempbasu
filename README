@@ -1,0 +1,11 @@
+INTRODUCTION
+==============
+
+Kempbasu provide new methods and software for exact p-value calculation of the zero
+hypothesis of non-differenced gene expression.
+
+The both p-value calculation methods: the Frequentist and the
+Bayesian. Both methods don't depends on any asymptotic result,
+therefore can be applied to tags with low total count.
+
+A automatic method for p-value cutoff calculation is also provided.
