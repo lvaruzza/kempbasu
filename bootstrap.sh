@@ -1,5 +1,5 @@
-ln -sf side.rb kemp
-ln -sf side.rb basu
+ln -sf kempbasu.rb kemp
+ln -sf kempbasu.rb basu
 
 #darcs changes  > ChangeLog
 aclocal &&
