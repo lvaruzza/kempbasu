@@ -14,7 +14,7 @@ AC_PROG_CC
 
 ACX_PTHREAD()
 AC_CHECK_HEADERS(Judy.h)
-AC_CHECK_LIB(Judy, JudyHSIns, ,echo "SIDE requires Judy to run."; exit 1)
+AC_CHECK_LIB(Judy, JudyHSIns, ,echo "SIDE requires Judy to run. Source code provied in ext-lib directory"; exit 1)
 PKG_CHECK_MODULES(GSL, gsl)
 AC_SUBST(GSL_LIBS)
 AC_SUBST(GSL_CFLAGS)
