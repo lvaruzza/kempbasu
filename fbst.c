@@ -49,7 +49,8 @@ typedef struct {
   unsigned int k;
 } Params;
 
-static double g (double *p, size_t dim, void *_params) {
+// Log of target Probability
+static double log_prob_fun (double *p, size_t dim, void *_params) {
   Params *params=(Params*)_params;
 
   double l1=0.0;
@@ -71,15 +72,17 @@ static double g (double *p, size_t dim, void *_params) {
 }
 
 
-static double f (double *p, size_t dim, void *_params) {
+// Exp of log_prob_fun
+static double prob_fun (double *p, size_t dim, void *_params) {
   Params *params=(Params*)_params;
-  double ll=g(p,dim,params);
+  double ll=log_prob_fun(p,dim,params);
   return exp(ll-params->likenorm);
 }
 
-static double t (double *p, size_t dim, void *_params) {
+// Exp of log_prob_fun in acceptance region
+static double tangent_region_fun (double *p, size_t dim, void *_params) {
   Params *params=(Params*)_params;
-  double val=g(p,dim,params);
+  double val=log_prob_fun(p,dim,params);
 
   if (val > params->cutoff) {
     return exp(val-params->likenorm);
@@ -108,8 +111,8 @@ void fbst(gsl_rng *r,
 
   Params *params=(Params*)malloc(sizeof(Params));
    
-  gsl_monte_function G = { &f, dim, params };
-  gsl_monte_function T = { &t, dim, params };
+  gsl_monte_function G = { &prob_fun, dim, params };
+  gsl_monte_function T = { &tangent_region_fun, dim, params };
 
   size_t i;
 
@@ -149,7 +152,7 @@ void fbst(gsl_rng *r,
   }
 
 
-  double likenorm = g(phat,dim,params);
+  double likenorm = log_prob_fun(phat,dim,params);
   params->likenorm = likenorm;
 
   fprintf(stderr,"likenorm = %.5g\n",likenorm);
