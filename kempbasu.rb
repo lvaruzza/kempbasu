@@ -20,7 +20,7 @@ if ARGV.length < 1
   exit -1
 end
 
-inputname=ARGV[0]
+inputname=ARGV.shift # pass the other arguments to basu
 basename=File.basename(File.basename(inputname,".dat"),".txt");
 
 resultname=basename + "-#{prgname}.txt"
@@ -51,17 +51,18 @@ File.open(inputname,"r") do |file|
     end
     out.close
 
-    cmd = File.join(dirname,prgname + ".bin")
+    prog = File.join(dirname,prgname + ".bin")
     tmp_result=out.path + "-#{prgname}"
     
     puts "temp input file is #{out.path}"
     puts "temp result file is #{tmp_result}"
 
-    print "cmd = #{cmd}\n"
     puts "=" * 20
     $stdout.flush
+    cmd = "#{prog} -n #{nprocs} #{ARGV.join(' ')} #{out.path}"
+    print "cmd = #{cmd}\n"
 
-    result=system("#{cmd} -n #{nprocs} #{out.path}");
+    result=system(cmd);
 
     puts "Program returned #{result}"
     puts "=" * 20

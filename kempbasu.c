@@ -55,6 +55,8 @@ static char *suffix="-basu";
  ************/
 
 int verbose_flag=1;
+double prior_alpha=1.0;
+double prior_beta=20.0;
 
 #ifdef HAVE_PTHREAD
 pthread_mutex_t results_mutex;
@@ -79,6 +81,9 @@ static struct option long_options[] =
     {"nprocs",  required_argument,       0, 'n'},
 #endif
     {"help",    no_argument,       0, 'h'},
+
+    {"prior-alpha",    no_argument,       0, 'a'},
+    {"prior-beta",    no_argument,       0, 'b'},
     {0, 0, 0, 0}
   };
 
@@ -89,7 +94,7 @@ void read_cmd_line(int *argc,char ***argv) {
     /* getopt_long stores the option index here. */
     int option_index = 0;
     
-    c = getopt_long (*argc, *argv, PTHREADS_ARGS "h",
+    c = getopt_long (*argc, *argv, PTHREADS_ARGS "ha:b:n:",
 		     long_options, &option_index);
     
     /* Detect the end of the options. */
@@ -110,6 +115,14 @@ void read_cmd_line(int *argc,char ***argv) {
 	
       case 'h':
 	help();
+	break;
+
+      case 'a':
+	prior_alpha=atof(optarg);
+	break;
+
+      case 'b':
+	prior_beta=atof(optarg);
 	break;
 
 #ifdef HAVE_PTHREAD
@@ -224,8 +237,8 @@ void calculate_index(gsl_rng * r,gsl_vector_uint *x,gsl_vector_uint *sums,size_t
 	fbst(r,
 	     x,
 	     sums,
-	     1.0,      // alpha
-	     1.0,      // beta
+	     prior_alpha,
+	     prior_beta,
 	     &ev,&ev_err,
 	     FBST_DEFAULTS);
 	
