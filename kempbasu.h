@@ -85,6 +85,8 @@ extern FBSTConfig *FBST_DEFAULTS;
 void fbst(gsl_rng *r,
 	  gsl_vector_uint *x,
 	  gsl_vector_uint *sums,
+	  double alpha,
+	  double beta,
 	  double *_ev,double *_err,
 	  FBSTConfig *config);
 

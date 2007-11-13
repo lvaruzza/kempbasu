@@ -224,6 +224,8 @@ void calculate_index(gsl_rng * r,gsl_vector_uint *x,gsl_vector_uint *sums,size_t
 	fbst(r,
 	     x,
 	     sums,
+	     1.0,      // alpha
+	     1.0,      // beta
 	     &ev,&ev_err,
 	     FBST_DEFAULTS);
 	

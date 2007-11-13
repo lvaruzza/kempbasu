@@ -46,6 +46,11 @@ typedef struct {
   double likenorm;
   gsl_vector_uint *x;
   gsl_vector_uint *sums;
+
+  // Alpha-1 and beta-1 parameters of Beta prior
+  double alpha_m1,beta_m1;
+
+  // Number of dimensions
   unsigned int k;
 } Params;
 
@@ -55,6 +60,8 @@ static double log_prob_fun (double *p, size_t dim, void *_params) {
 
   double l1=0.0;
   double l2=0.0;
+  double lalpha=0.0;
+  double lbeta=0.0;
   size_t i;
 
   //a*(log(Na)+log(k[0]))+b*(log(Nb)+log(k[1]))+(-a-b)*log(Na*k[0]+Nb*k[1]);
@@ -64,11 +71,16 @@ static double log_prob_fun (double *p, size_t dim, void *_params) {
     unsigned int sum=ELT(params->sums,i);
 
     l1 += x *(log(sum) + log(p[i]));
+    lalpha += log(p[i]);
+    lbeta += log(1.0-p[i]);
     l2 += sum*p[i]; 
     //fprintf(stderr,"%i %i %g %g\n",x,sum,l1,l2);
   }
 
-  return l1 - params->k * log(l2);
+  return l1 
+    - params->k * log(l2) 
+    + params->alpha_m1 * lalpha
+    + params->beta_m1  * lbeta;
 }
 
 
@@ -94,10 +106,12 @@ static double tangent_region_fun (double *p, size_t dim, void *_params) {
 void fbst(gsl_rng *r,
 	  gsl_vector_uint *x,
 	  gsl_vector_uint *sums,
+	  double alpha,
+	  double beta,
 	  double *_ev,double *_err,
 	  FBSTConfig *config) {
 
-  fprintf(stderr,"FBST\n");
+  fprintf(stderr,"FBST: alpha=%f beta=%f\n",alpha,beta);
 
   assert(x->size == sums->size);
 
@@ -110,7 +124,10 @@ void fbst(gsl_rng *r,
   fprintf(stderr,"dim = %zi\n",dim);
 
   Params *params=(Params*)malloc(sizeof(Params));
-   
+
+  params->alpha_m1 = alpha - 1.0;
+  params->beta_m1  = beta - 1.0;
+
   gsl_monte_function G = { &prob_fun, dim, params };
   gsl_monte_function T = { &tangent_region_fun, dim, params };
 
