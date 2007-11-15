@@ -62,11 +62,17 @@ File.open(inputname,"r") do |file|
     cmd = "#{prog} -n #{nprocs} #{ARGV.join(' ')} #{out.path}"
     print "cmd = #{cmd}\n"
 
-    result=system(cmd);
+    success=system(cmd);
 
-    puts "Program returned #{result}"
+
+    puts "Program returned #{success}"
     puts "=" * 20
     $stdout.flush
+
+    if !success
+      $stderr.puts "ERROR: Can't execute #{prog}"
+      exit
+    end
 
     file.rewind
     2.times { file.readline }

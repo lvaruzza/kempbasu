@@ -434,6 +434,16 @@ int main (int argc,char **argv) {
 
 
   /******************
+   * Check Dataset 
+   *
+   ******************/
+  
+  if (matrix_check(MAT_UINT,matrix)) {
+    fprintf(stderr,"ERROR: Invalid input matrix\n");
+    exit(-1);
+  }
+
+  /******************
    *
    * Calculations 
    *

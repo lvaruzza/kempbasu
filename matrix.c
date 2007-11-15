@@ -52,6 +52,50 @@ int matrix_read(FILE *in,MatrixType type,void *matrix) {
   return 0;
 }
 
+int matrix_check_uint(void *_matrix) {
+  size_t i,j;
+
+  gsl_matrix_uint *m=(gsl_matrix_uint *)_matrix;
+  gsl_vector_uint *s=gsl_vector_uint_alloc(m->size2);
+
+  gsl_vector_set_zero(s);
+
+  for(i=1;i<m->size1;i++) {
+    for(j=0;j<m->size2;j++) { 
+      gsl_vector_uint_set(s,j,gsl_vector_uint_get(s,j)+gsl_matrix_uint_get(m,i,j));
+    }
+  }
+  
+  for(j=0;j<m->size2;j++) { 
+    if (gsl_vector_uint_get(s,j) > gsl_matrix_uint_get(m,0,j)) {
+      char buff[128];
+      sprintf(buff,
+	      "Sum of values in column %i is %i,"
+	      "which is greater then declared total %i",
+	      j,
+	      gsl_vector_get(s,j),
+	      gsl_matrix_uint_get(m,0,j));
+	
+      fprintf(stderr,buff);
+      GSL_ERROR(buff,GSL_EINVAL);
+    }
+  }
+  return 1;
+}
+
+int matrix_check(MatrixType type,void *matrix) {
+  switch(type) {
+  case MAT_UINT:
+    return matrix_check_uint(matrix);
+    break;
+  default:
+    GSL_ERROR("Invalid matrix format",GSL_EINVAL);
+    break;
+  }
+
+  return 0;
+}
+
 int matrix_print_uint(FILE *out,void *_matrix) {
   size_t i,j;
 

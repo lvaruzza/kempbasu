@@ -23,4 +23,11 @@ typedef enum {MAT_INT,MAT_UINT,MAT_DOUBLE} MatrixType;
 int matrix_read(FILE *in,MatrixType type,void *matrix);
 int matrix_print(FILE *out,MatrixType type,void *matrix);
 
+/* Check the sum of matrix columns.
+ *
+ *  The sum of the all the other values need to be less then first
+ *  value of the column
+ */
+int matrix_check(MatrixType type,void *matrix);
+
 #endif
