@@ -76,11 +76,10 @@ int matrix_check_uint(void *_matrix) {
 	      gsl_vector_get(s,j),
 	      gsl_matrix_uint_get(m,0,j));
 	
-      fprintf(stderr,buff);
       GSL_ERROR(buff,GSL_EINVAL);
     }
   }
-  return 1;
+  return 0;
 }
 
 int matrix_check(MatrixType type,void *matrix) {
