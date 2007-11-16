@@ -56,7 +56,7 @@ static char *suffix="-basu";
 
 int verbose_flag=1;
 double prior_alpha=1.0;
-double prior_beta=20.0;
+double prior_beta=19.0;
 
 #ifdef HAVE_PTHREAD
 pthread_mutex_t results_mutex;
