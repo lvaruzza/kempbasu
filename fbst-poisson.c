@@ -23,6 +23,7 @@
 #include <assert.h>
 #include <math.h>
 #include "kempbasu.h"
+#include "fbst.h"
 
 #define ELT gsl_vector_uint_get
 

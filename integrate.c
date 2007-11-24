@@ -36,13 +36,11 @@ void display_results (char *title, double result, double error) {
 }
     
 
-
 void mc_integrate(gsl_monte_function *G,
 		  gsl_rng *r,
 		  double *_res,double *_err,
 		  MCConfig *config) {
 
-  double res, err;
   size_t i;
 
   double *xl = (double*)malloc(G->dim*sizeof(double));
@@ -53,6 +51,21 @@ void mc_integrate(gsl_monte_function *G,
     xl[i]=0.00001;
     xu[i]=1.0;
   }
+
+
+  free(xl);
+  free(xu);
+}
+
+void mc_integrate1(gsl_monte_function *G,
+		   gsl_rng *r,
+		   double *xl,
+		   double *xu,
+		   double *_res,double *_err,
+		   MCConfig *config) {
+
+  double res, err;
+  size_t i;
 
   size_t calls = config->calls;
 
@@ -80,9 +93,6 @@ void mc_integrate(gsl_monte_function *G,
 
   *_res=res;
   *_err=err;
-
-  free(xl);
-  free(xu);
 }
 
 

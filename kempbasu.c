@@ -28,6 +28,7 @@
 #endif
 
 #include "kempbasu.h"
+#include "fbst.h"
 #include "matrix.h"
 
 
@@ -45,6 +46,7 @@ static int calculate_evalue = 1;
 static int calculate_pvalue = 0;
 static char *suffix="-basu";
 #define BINARY "basu"
+#define FBST_FUN fbst_loginorm
 #endif 
 
 
@@ -55,8 +57,8 @@ static char *suffix="-basu";
  ************/
 
 int verbose_flag=1;
-double prior_alpha=1.0;
-double prior_beta=19.0;
+double prior_alpha=.1;
+double prior_beta=1.9;
 
 #ifdef HAVE_PTHREAD
 pthread_mutex_t results_mutex;
@@ -230,11 +232,12 @@ void calculate_index(gsl_rng * r,gsl_vector_uint *x,gsl_vector_uint *sums,size_t
       value->pvalue_beta_score=beta_score;
     }
     
+#ifdef BASU    
     if (calculate_evalue) {
       int tries=1;
       do {
 	fprintf(stderr,"====> EVALUE: %i try\n",tries);
-	fbst(r,
+	FBST_FUN(r,
 	     x,
 	     sums,
 	     prior_alpha,
@@ -259,7 +262,7 @@ void calculate_index(gsl_rng * r,gsl_vector_uint *x,gsl_vector_uint *sums,size_t
       value->evalue=ev;
       value->evalue_sigma=ev_err;
     }
-
+#endif
 
 #ifdef HAVE_PTHREAD
     pthread_mutex_lock(&results_mutex);

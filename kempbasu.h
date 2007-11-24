@@ -70,32 +70,12 @@ void mc_integrate(gsl_monte_function *G,
 		  double *_res,double *_err,
 		  MCConfig *config);
 
-/*
- * FBST
- *
- */
-
-
-typedef struct _FBSTConfig {
-  MCConfig *mc_config;
-} FBSTConfig;
-
-extern FBSTConfig *FBST_DEFAULTS;
-
-void fbst(gsl_rng *r,
-	  gsl_vector_uint *x,
-	  gsl_vector_uint *sums,
-	  double alpha,
-	  double beta,
-	  double *_ev,double *_err,
-	  FBSTConfig *config);
-
-/*
- *
- * P-value
- *
- */
-
+void mc_integrate1(gsl_monte_function *G,
+		   gsl_rng *r,
+		   double *xl,
+		   double *xu,
+		   double *_res,double *_err,
+		   MCConfig *config);
 
 
 typedef struct _P_valueConfig {

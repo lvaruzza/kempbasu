@@ -6,7 +6,7 @@ kemp_bin_SOURCES = kempbasu.c fbst-poisson.c integrate.c P-value.c pvalue.c matr
 kemp_bin_LDADD = @GSL_LIBS@ -lJudy @PTHREAD_LIBS@ -lm
 kemp_bin_CFLAGS = -DKEMP @GSL_CFLAGS@ @PTHREAD_CFLAGS@
 
-basu_bin_SOURCES = kempbasu.c fbst-poisson.c integrate.c pvalue.c alpha.c  matrix.c matrix.h kempbasu.h params.h
+basu_bin_SOURCES = kempbasu.c fbst-poisson.c fbst-loginorm.c integrate.c pvalue.c alpha.c  matrix.c matrix.h kempbasu.h params.h
 basu_bin_LDADD = @GSL_LIBS@ -lJudy @PTHREAD_LIBS@ -lm
 basu_bin_CFLAGS = -DBASU @GSL_CFLAGS@ @PTHREAD_CFLAGS@
 
