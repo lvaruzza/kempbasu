@@ -77,6 +77,8 @@ static double log_prob_fun (double *p, size_t dim, void *_params) {
     //fprintf(stderr,"%i %i %g %g\n",x,sum,l1,l2);
   }
 
+  //printf("%lf %lf\n",params->alpha_m1,params->beta_m1);
+
   return l1 
     - params->k * log(l2) 
     + params->alpha_m1 * lalpha
