@@ -26,6 +26,12 @@ basename=File.basename(File.basename(inputname,".dat"),".txt");
 resultname=basename + "-#{prgname}.txt"
 logname=basename + ".log"
 
+extra_args=""
+
+if !ARGV.any? {|x| x == "-n"}
+  extra_args="-n #{nprocs}"
+end
+
 puts "Running #{prgname}"
 puts "  directory #{dirname}"
 puts "  reading #{inputname}"
@@ -59,7 +65,7 @@ File.open(inputname,"r") do |file|
 
     puts "=" * 20
     $stdout.flush
-    cmd = "#{prog} -n #{nprocs} #{ARGV.join(' ')} #{out.path}"
+    cmd = "#{prog}  #{ARGV.join(' ')} #{extra_args} #{out.path}"
     print "cmd = #{cmd}\n"
 
     success=system(cmd);
