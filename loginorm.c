@@ -87,41 +87,79 @@ void read_cmd_line(int *argc,char ***argv) {
   *argv += optind-1;
 }
 
-void loginorm_params(gsl_matrix_uint *m) {
+void loginorm_params(gsl_matrix_uint *m,char *in_filename) {
   size_t i,j,k;
   double mean,var,psi_i,psi0;
   gsl_vector *psi=gsl_vector_alloc(m->size2);
+  gsl_vector *psi1=gsl_vector_alloc(m->size2);
   size_t nvars=m->size2-1;
+  FILE *tbl;
+  FILE *norm;
 
-  printf("%i %i\n",m->size1,nvars*(1+nvars));
+  char buff[512];
+
+  strncpy(buff,in_filename,256);
+  strcat(buff,"-gamma");
+
+  if ((tbl=fopen(buff,"w+"))==NULL) {
+    fprintf(stderr,"Can't open file %s\n",buff);
+    exit(-1);
+  }
+
+  strncpy(buff,in_filename,256);
+  strcat(buff,"-norm");
+
+  if ((norm=fopen(buff,"w+"))==NULL) {
+    fprintf(stderr,"Can't open file %s\n",buff);
+    exit(-1);
+  }
+
+  fprintf(norm,"%i %i\n",m->size1,nvars*(1+nvars));
+
+
   for(i=0;i<m->size1;i++) {
-    
-    psi0=gsl_sf_psi(ELT(m,i,0) + 0.5);
-    
-    for(j=1;j<m->size2;j++) {
+    fprintf(tbl,"X\t");
+    for(j=0;j<m->size2;j++) {
+      fprintf(tbl,"%i\t",ELT(m,i,j));
+    }
+    fprintf(tbl,"\n");
+
+    for(j=0;j<m->size2;j++) {
       psi_i = gsl_sf_psi(ELT(m,i,j) + 0.5);
       gsl_vector_set(psi,j,psi_i);
+
+      psi_i = gsl_sf_psi_1(ELT(m,i,j) + 0.5);
+      gsl_vector_set(psi1,j,psi_i);
     }
-    
+
+    // Gamma-table
+    fprintf(tbl,"digamma\t");
+    for(j=0;j<m->size2;j++) {
+      fprintf(tbl,"%.16lf\t",gsl_vector_get(psi,j));
+    }
+    fprintf(tbl,"\n");
+
+    fprintf(tbl,"trigamma\t");
+    for(j=0;j<m->size2;j++) {
+      fprintf(tbl,"%.16lf\t",gsl_vector_get(psi1,j));
+    }
+    fprintf(tbl,"\n\n");
 
     for(j=1;j<m->size2;j++) {
       mean=gsl_vector_get(psi,j)-psi0;
-      printf("%lf ",mean);
+      fprintf(norm,"%.16lf ",mean);
     }
-
-
     for(j=1;j<m->size2;j++) {
       for(k=1;k<m->size2;k++) {
 	if (j==k) {
-	  var=gsl_vector_get(psi,j)+psi0;
-	  printf("%lf ",var);
+	  var=gsl_vector_get(psi1,j)+gsl_vector_get(psi1,0);
+	  fprintf(norm,"%.16lf ",var);
 	} else {
-	  printf("%lf ",psi0);
+	  fprintf(norm,"%.16lf ",gsl_vector_get(psi1,0));
 	}
       }
     }
-
-    printf("\n");
+    fprintf(norm,"\n");
   }
 }
 
@@ -151,5 +189,5 @@ int main(int argc,char **argv) {
 
   matrix_read(in,MAT_UINT,&matrix);
 
-  loginorm_params(matrix);
+  loginorm_params(matrix,in_filename);
 }
