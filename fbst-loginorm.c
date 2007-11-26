@@ -166,6 +166,7 @@ double normal_null_maximum(gsl_vector *means,gsl_vector *s) {
 
 typedef struct {
   double cutoff;
+  double norm;
   gsl_vector *means;
   gsl_vector *sd;
 } Params;
@@ -177,7 +178,7 @@ static double tangent_region_fun (double *p, size_t dim, void *_params) {
   //return val;
 
   if (val < par->cutoff) {
-    return exp(-val);
+    return exp(-val-par->norm);
   } else {
     return 0;
   }
@@ -186,9 +187,9 @@ static double tangent_region_fun (double *p, size_t dim, void *_params) {
 
 static double normal_fun (double *p, size_t dim, void *_params) {
   Params *par=(Params*)_params;
-  double val=normal_prod(p,par->means,par->sd);
+  double val=mahalanobis(p,par->means,par->sd);
 
-  return val;
+  return exp(-val-par->norm);
 }
 
 static double max_fun (double x, void *_params) {
@@ -259,23 +260,31 @@ void fbst_normal(gsl_rng *r,
 
   assert(means->size == sd->size);
 
+  size_t i;
   size_t dim=means->size;
 
   if (config->mc_config==NULL) {
     config->mc_config=MC_DEFAULTS;
   }
-  
+
+
+  double norm=log(2*M_PI)*((float)dim)/2.0;
+
+  for(i=0;i<dim;i++) {
+    norm+=log(ELTd(sd,i));
+  }
+
+  printf("lnorm=%lg\n",log(norm));
+
   double xstar=normal_null_maximum(means,sd);
   printf("x*=%lg\n",xstar);
 
   double lcutoff=mahalanobis1d(xstar,means,sd);
-  double max=normal_prod(means->data,means,sd);
-  printf("lcutoff=%lg lmax=%lg\n",lcutoff,log(max));
+  printf("lcutoff=%lg\n",lcutoff);
 
   double *xl = (double*)malloc(dim*sizeof(double));
   double *xu = (double*)malloc(dim*sizeof(double));
 
-  size_t i;
   double min_xl=1e30;
   double max_xu=-1e30;
   double xl1,xu1;
@@ -295,6 +304,7 @@ void fbst_normal(gsl_rng *r,
   Params par;
   par.means=means;
   par.sd=sd;
+  par.norm=norm;
 
   /*double ixstar=iteractive_max(&par,min_xl,max_xu);
   double licutoff=mahalanobis1d(ixstar,means,sd);
@@ -315,13 +325,7 @@ void fbst_normal(gsl_rng *r,
   
   mc_integrate1(&T,r,xl,xu,&t,&t_err,config->mc_config);
 
-  double norm=pow(2*M_PI,((float)dim)/2.0);
-
-  for(i=0;i<dim;i++) {
-    norm*=ELTd(sd,i);
-  }
-
-  t/=norm;
+  //t/=norm;
 
   free(xl);
   free(xu);
