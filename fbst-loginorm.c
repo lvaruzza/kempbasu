@@ -110,22 +110,20 @@ double normal_null_maximum(gsl_vector *means,gsl_vector *s) {
   double delta=b*b-4*a*c;
   double x0=-b/(2.0*a);
   printf("null max: delta=%lg\n",delta);
-
-  if (delta > 0) {
-    if (delta < 1e-5) {
-      return x0; 
-    } else {
+  
+  if (fabs(delta) < 1e-5) {
+    return x0; 
+  } else {
+    if (delta > 0) {
       double x1=(-b-sqrt(delta))/(2.0*a);
       double x2=(-b-sqrt(delta))/(2.0*a);
       
       printf("null max: x1=%lg x2=%lg\n",x1,x2);
       return x1;
+    } else {
+      printf("WARNING: Null max not found!\n");
+      return x0;
     }
-  } else {
-    printf("WARNING: Null max not found!");
-
-
-    return 0.0;
   }
 }
 
