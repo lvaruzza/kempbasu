@@ -78,23 +78,6 @@ double gsl_vector_sum(gsl_vector *v) {
   return sum;
 }
 
-void bhaskara(double a,double b,double c,double *x1,double *x2) {
-  double delta=b*b-4.0*a*c;
-
-  printf("delta=%lf\n",delta);
-
-  if (delta > 0) {
-    *x1=(-b-sqrt(delta))/(2.0*a);
-    *x2=(-b+sqrt(delta))/(2.0*a);
-  }  else
-    if (delta == 0) {
-      *x1=*x2=-b/(2.0*a);
-    } else {
-      printf("Bhaskara: Root not found\n");
-      *x1=*x2=NAN;
-    }
-}
-
 // Calulate p(j)=Prod_(i!=j) sigma_i
 void mutual_prod(gsl_vector *x,gsl_vector *prods) {
   assert(x->size == prods->size);
