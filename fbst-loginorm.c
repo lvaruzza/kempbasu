@@ -92,7 +92,7 @@ double normal_null_maximum(gsl_vector *means,gsl_vector *s) {
   gsl_vector *B=gsl_vector_alloc(means->size);
   gsl_blas_dcopy(means,B);
   gsl_blas_dscal(-2.0,B);
-  printf("B=%lg %lg\n",ELTd(B,0),ELTd(B,1));
+  //printf("B=%lg %lg\n",ELTd(B,0),ELTd(B,1));
 
   gsl_vector *C=gsl_vector_alloc(means->size);
   gsl_blas_dcopy(means,C);
