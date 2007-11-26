@@ -5,6 +5,7 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_min.h>
+#include <gsl/gsl_blas.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -17,11 +18,18 @@
 
 double normal_prod(double *x,gsl_vector *means,gsl_vector *vars) {
   size_t j;
-  double prod=1.0;
+  double lprod=0.0;
+  double p;
+
+  //printf("NP: x=%lf %lf\n",x[0],x[1]);
+
   for(j=0;j<means->size;j++) {
-    prod*=gsl_ran_gaussian_pdf(x[j]-ELTd(means,j),ELTd(vars,j));
+    p=gsl_ran_gaussian_pdf(x[j]-ELTd(means,j),ELTd(vars,j));
+
+    lprod+=log(p);
   }
-  return prod;
+
+  return exp(lprod);
 }
 
 double gsl_vector_sum(gsl_vector *v) {
@@ -33,6 +41,23 @@ double gsl_vector_sum(gsl_vector *v) {
   return sum;
 }
 
+void bhaskara(double a,double b,double c,double *x1,double *x2) {
+  double delta=b*b-4.0*a*c;
+
+  printf("delta=%lf\n",delta);
+
+  if (delta > 0) {
+    *x1=(-b-sqrt(delta))/(2.0*a);
+    *x2=(-b+sqrt(delta))/(2.0*a);
+  }  else
+    if (delta == 0) {
+      *x1=*x2=-b/(2.0*a);
+    } else {
+      printf("Bhaskara: Root not found\n");
+      *x1=*x2=NAN;
+    }
+}
+
 // Calulate p(j)=Prod_(i!=j) sigma_i
 void mutual_prod(gsl_vector *x,gsl_vector *prods) {
   assert(x->size == prods->size);
@@ -40,32 +65,68 @@ void mutual_prod(gsl_vector *x,gsl_vector *prods) {
   size_t n=x->size;
   double prod;
 
-  printf("mutial prod: ");
+  printf("mutual prod: ");
   for(i=0;i<n;i++) {
     prod=1.0;
+    printf("(");
     for(j=0;j<n;j++) {
+      printf("%lf ",gsl_vector_get(x,j));
       if (i!=j) prod*=gsl_vector_get(x,j);
     }
     gsl_vector_set(prods,i,prod);
-    printf("%le ",i,prod);
+    printf(")=%lg ",gsl_vector_get(prods,i));
   }
   printf("\n");
 }
 
-double normal_null_maximum(gsl_vector *means,gsl_vector *vars) {
-  assert(means->size == vars->size);
+double normal_null_maximum(gsl_vector *means,gsl_vector *s) {
+  assert(means->size == s->size);
+  
+  // Baskara coefs.
+  double a,b,c;
+
+  gsl_vector *s2=gsl_vector_alloc(means->size);
+  gsl_blas_dcopy(s,s2);
+  gsl_vector_mul(s2,s2);
+
+  gsl_vector *B=gsl_vector_alloc(means->size);
+  gsl_blas_dcopy(means,B);
+  gsl_blas_dscal(-2.0,B);
+  printf("B=%lg %lg\n",ELTd(B,0),ELTd(B,1));
+
+  gsl_vector *C=gsl_vector_alloc(means->size);
+  gsl_blas_dcopy(means,C);
+  gsl_vector_mul(C,C);
 
   gsl_vector *prods=gsl_vector_alloc(means->size);
+  mutual_prod(s2,prods);
 
-  mutual_prod(vars,prods);
-  double a,b;
-  b=gsl_vector_sum(prods);
-  gsl_vector_mul(prods,means);
-  a=gsl_vector_sum(prods);
-  printf("a=%lg b=%lg\n",a,b);
-  gsl_vector_free(prods);
+  a=gsl_blas_dasum(prods);
+  gsl_blas_ddot(B,prods,&b);
+  gsl_blas_ddot(C,prods,&c);
 
-  return a/b;
+  printf("null max: a=%lf b=%lf c=%lf\n",a,b,c);
+
+  double delta=b*b-4*a*c;
+  double x0=-b/(2.0*a);
+  printf("null max: delta=%lg\n",delta);
+
+  if (delta > 0) {
+    if (delta < 1e-5) {
+      return x0; 
+    } else {
+      double x1=(-b-sqrt(delta))/(2.0*a);
+      double x2=(-b-sqrt(delta))/(2.0*a);
+      
+      printf("null max: x1=%lg x2=%lg\n",x1,x2);
+      return x1;
+    }
+  } else {
+    printf("WARNING: Null max not found!");
+
+
+    return 0.0;
+  }
 }
 
 typedef struct {
@@ -118,7 +179,7 @@ double iteractive_max(Params *params,double a, double b) {
 
   printf("a=%lg b=%lg\n",a,b);
 
-  printf("f(a)=%lg f(b)=%lg\n",max_fun(a,params),max_fun(b,params));
+  printf("f(a)=%lg f(b)=%lg f((a+b)/2)=%lg\n",max_fun(a,params),max_fun(b,params),max_fun((a+b)/2.0,params));
 
   F.function = &max_fun;
   F.params = (void*)params;
@@ -182,26 +243,49 @@ void fbst_normal(gsl_rng *r,
   gsl_vector_set_all(Xstar,xstar);
   printf("x*=%lg\n",xstar);
   double cutoff=normal_prod(Xstar->data,means,vars);
-  printf("cutoff=%lg\n",cutoff);
+  double max=normal_prod(means->data,means,vars);
+  printf("cutoff=%lg max=%lg\n",cutoff,max);
 
-  gsl_vector_set_all(Xstar,xstar+0.1);
+  gsl_vector_set_all(Xstar,xstar+ELTd(vars,0)/10.0);
   double cutoff2=normal_prod(Xstar->data,means,vars);
 
-  gsl_vector_set_all(Xstar,xstar-0.1);
+  gsl_vector_set_all(Xstar,xstar-ELTd(vars,0)/10.0);
   double cutoff3=normal_prod(Xstar->data,means,vars);
 
-  printf("cutoff=%lg  +0.1=%lg  -0.1=%fl\n",cutoff,cutoff2,cutoff3);
+  printf("cutoff=%lg  +s/10=%lg  -s/10=%fl\n",cutoff,cutoff2,cutoff3);
 
+
+  double *xl = (double*)malloc(dim*sizeof(double));
+  double *xu = (double*)malloc(dim*sizeof(double));
+
+  size_t i;
+  double min_xl=1e30;
+  double max_xu=-1e30;
+  double xl1,xu1;
+
+  for (i=0;i<dim;i++) {
+    xl[i]=ELTd(means,i)-10*ELTd(vars,i);
+    xu[i]=ELTd(means,i)+10*ELTd(vars,i);
+    
+    xl1=ELTd(means,i)-10*ELTd(vars,i);
+    xu1=ELTd(means,i)+10*ELTd(vars,i);
+
+    if (xl1 < min_xl) min_xl=xl1;
+    if (xu1 > max_xu) max_xu=xu1;
+  }
+  printf("min_xl=%lg max_xu=%lg\n",min_xl,max_xu);
 
   Params par;
   par.means=means;
   par.vars=vars;
 
-  double a=xstar-10;
-  double b=xstar+10;
+  /*double ixstar=iteractive_max(&par,min_xl,max_xu);
+  double icutoff=normal_prod(Xstar->data,means,vars);
+  printf("ix* = %lg\n",ixstar);
 
-  //double ixstar=iteractive_max(&par,0.0,1);
-  //printf("icutoff=%lg cutoff=%lg\n",icutoff,cutoff);
+  gsl_vector_set_all(Xstar,ixstar);
+  printf("icutoff=%lg cutoff=%lg\n",icutoff,cutoff);
+  */
 
   par.cutoff=cutoff;
 
@@ -209,21 +293,10 @@ void fbst_normal(gsl_rng *r,
   double t,t_err;
 
 
-  double *xl = (double*)malloc(dim*sizeof(double));
-  double *xu = (double*)malloc(dim*sizeof(double));
-
-  size_t i;
-
-  for (i=0;i<dim;i++) {
-    xl[i]=ELTd(means,i)-10*ELTd(vars,i);
-    xu[i]=ELTd(means,i)+10*ELTd(vars,i);
-  }
-
-  //gsl_monte_function F = { *normal_fun, dim, &par };
-  //double f,f_err;
-  //mc_integrate1(&F,r,xl,xu,&f,&f_err,config->mc_config);
-
-  //printf("I(f)=%lg+-%le\n",f,f_err);
+  /*gsl_monte_function F = { *normal_fun, dim, &par };
+  double f,f_err;
+  mc_integrate1(&F,r,xl,xu,&f,&f_err,config->mc_config);
+  printf("I(f)=%lg+-%le\n",f,f_err);*/
   
   mc_integrate1(&T,r,xl,xu,&t,&t_err,config->mc_config);
 

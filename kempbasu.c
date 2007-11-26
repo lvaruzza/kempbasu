@@ -441,10 +441,10 @@ int main (int argc,char **argv) {
    *
    ******************/
   
-  if (matrix_check(MAT_UINT,matrix)) {
+  /*if (matrix_check(MAT_UINT,matrix)) {
     fprintf(stderr,"ERROR: Invalid input matrix\n");
     exit(-1);
-  }
+    }*/
 
   /******************
    *
