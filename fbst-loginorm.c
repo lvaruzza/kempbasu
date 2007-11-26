@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "kempbasu.h"
 #include "fbst.h"
@@ -16,7 +17,34 @@
 #define ELT gsl_vector_uint_get
 #define ELTd gsl_vector_get
 
-double normal_prod(double *x,gsl_vector *means,gsl_vector *vars) {
+
+double mahalanobis1d(double x,gsl_vector *means,gsl_vector *sd) {
+  size_t j;
+  double d=0.0;
+  double p;
+
+  for(j=0;j<means->size;j++) {
+    p=(x-ELTd(means,j))/ELTd(sd,j);
+    d+=p*p;
+  }
+
+  return 0.5*d;
+}
+
+double mahalanobis(double *x,gsl_vector *means,gsl_vector *sd) {
+  size_t j;
+  double d=0.0;
+  double p;
+
+  for(j=0;j<means->size;j++) {
+    p=(x[j]-ELTd(means,j))/ELTd(sd,j);
+    d+=p*p;
+  }
+
+  return 0.5*d;
+}
+
+double normal_prod_gsl(double *x,gsl_vector *means,gsl_vector *sd) {
   size_t j;
   double lprod=0.0;
   double p;
@@ -24,12 +52,21 @@ double normal_prod(double *x,gsl_vector *means,gsl_vector *vars) {
   //printf("NP: x=%lf %lf\n",x[0],x[1]);
 
   for(j=0;j<means->size;j++) {
-    p=gsl_ran_gaussian_pdf(x[j]-ELTd(means,j),ELTd(vars,j));
+    p=gsl_ran_gaussian_pdf(x[j]-ELTd(means,j),ELTd(sd,j));
 
     lprod+=log(p);
   }
 
   return exp(lprod);
+}
+
+// Unormalized Normal
+double normal_prod(double *x,gsl_vector *means,gsl_vector *sd) {
+  double l;
+
+  l=mahalanobis(x,means,sd);
+
+  return exp(-l);
 }
 
 double gsl_vector_sum(gsl_vector *v) {
@@ -65,18 +102,18 @@ void mutual_prod(gsl_vector *x,gsl_vector *prods) {
   size_t n=x->size;
   double prod;
 
-  printf("mutual prod: ");
+  //printf("mutual prod: ");
   for(i=0;i<n;i++) {
     prod=1.0;
-    printf("(");
+    //printf("(");
     for(j=0;j<n;j++) {
-      printf("%lf ",gsl_vector_get(x,j));
+      //printf("%lf ",gsl_vector_get(x,j));
       if (i!=j) prod*=gsl_vector_get(x,j);
     }
     gsl_vector_set(prods,i,prod);
-    printf(")=%lg ",gsl_vector_get(prods,i));
+    //printf(")=%lg ",gsl_vector_get(prods,i));
   }
-  printf("\n");
+  //printf("\n");
 }
 
 double normal_null_maximum(gsl_vector *means,gsl_vector *s) {
@@ -130,12 +167,12 @@ double normal_null_maximum(gsl_vector *means,gsl_vector *s) {
 typedef struct {
   double cutoff;
   gsl_vector *means;
-  gsl_vector *vars;
+  gsl_vector *sd;
 } Params;
 
 static double tangent_region_fun (double *p, size_t dim, void *_params) {
   Params *par=(Params*)_params;
-  double val=normal_prod(p,par->means,par->vars);
+  double val=normal_prod(p,par->means,par->sd);
 
   //return val;
 
@@ -149,21 +186,15 @@ static double tangent_region_fun (double *p, size_t dim, void *_params) {
 
 static double normal_fun (double *p, size_t dim, void *_params) {
   Params *par=(Params*)_params;
-  double val=normal_prod(p,par->means,par->vars);
+  double val=normal_prod(p,par->means,par->sd);
 
   return val;
 }
 
 static double max_fun (double x, void *_params) {
   Params *par=(Params*)_params;
-  
-  gsl_vector *p=gsl_vector_alloc(par->means->size);
-  gsl_vector_set_all(p,x);
 
-  double val=-normal_prod(p->data,par->means,par->vars);
-
-  gsl_vector_free(p);
-
+  double val=mahalanobis1d(x,par->means,par->sd);
   return val;
 }
 
@@ -173,7 +204,7 @@ double iteractive_max(Params *params,double a, double b) {
   gsl_function F;
   int status;
   int iter = 0, max_iter = 100;
-  double m;
+  double m=(a+b)/2.0;
 
   printf("a=%lg b=%lg\n",a,b);
 
@@ -186,8 +217,7 @@ double iteractive_max(Params *params,double a, double b) {
   s = gsl_min_fminimizer_alloc (T);
   gsl_min_fminimizer_set (s, &F, m, a, b);
 
-  printf ("using %s method\n",
-          gsl_min_fminimizer_name (s));
+  printf ("using %s method\n",gsl_min_fminimizer_name (s));
 
   fflush(stdout);
 
@@ -204,8 +234,7 @@ double iteractive_max(Params *params,double a, double b) {
       a = gsl_min_fminimizer_x_lower (s);
       b = gsl_min_fminimizer_x_upper (s);
 
-      status 
-        = gsl_min_test_interval (a, b, 0.001, 0.0);
+      status = gsl_min_test_interval (a, b, 0.001, 0.0);
 
       if (status == GSL_SUCCESS)
         printf ("Converged:\n");
@@ -224,11 +253,11 @@ double iteractive_max(Params *params,double a, double b) {
 
 void fbst_normal(gsl_rng *r,
 		 gsl_vector *means,
-		 gsl_vector *vars,
+		 gsl_vector *sd,
 		 double *_ev,double *_err,
 		 FBSTConfig *config) {
 
-  assert(means->size == vars->size);
+  assert(means->size == sd->size);
 
   size_t dim=means->size;
 
@@ -236,19 +265,20 @@ void fbst_normal(gsl_rng *r,
     config->mc_config=MC_DEFAULTS;
   }
   
-  double xstar=normal_null_maximum(means,vars);
+  double xstar=normal_null_maximum(means,sd);
   gsl_vector *Xstar=gsl_vector_alloc(means->size);
   gsl_vector_set_all(Xstar,xstar);
   printf("x*=%lg\n",xstar);
-  double cutoff=normal_prod(Xstar->data,means,vars);
-  double max=normal_prod(means->data,means,vars);
+
+  double cutoff=normal_prod(Xstar->data,means,sd);
+  double max=normal_prod(means->data,means,sd);
   printf("cutoff=%lg max=%lg\n",cutoff,max);
 
-  gsl_vector_set_all(Xstar,xstar+ELTd(vars,0)/10.0);
-  double cutoff2=normal_prod(Xstar->data,means,vars);
+  gsl_vector_set_all(Xstar,xstar+ELTd(sd,0)/10.0);
+  double cutoff2=normal_prod(Xstar->data,means,sd);
 
-  gsl_vector_set_all(Xstar,xstar-ELTd(vars,0)/10.0);
-  double cutoff3=normal_prod(Xstar->data,means,vars);
+  gsl_vector_set_all(Xstar,xstar-ELTd(sd,0)/10.0);
+  double cutoff3=normal_prod(Xstar->data,means,sd);
 
   printf("cutoff=%lg  +s/10=%lg  -s/10=%fl\n",cutoff,cutoff2,cutoff3);
 
@@ -262,11 +292,11 @@ void fbst_normal(gsl_rng *r,
   double xl1,xu1;
 
   for (i=0;i<dim;i++) {
-    xl[i]=ELTd(means,i)-10*ELTd(vars,i);
-    xu[i]=ELTd(means,i)+10*ELTd(vars,i);
+    xl[i]=ELTd(means,i)-10*ELTd(sd,i);
+    xu[i]=ELTd(means,i)+10*ELTd(sd,i);
     
-    xl1=ELTd(means,i)-10*ELTd(vars,i);
-    xu1=ELTd(means,i)+10*ELTd(vars,i);
+    xl1=ELTd(means,i)-10*ELTd(sd,i);
+    xu1=ELTd(means,i)+10*ELTd(sd,i);
 
     if (xl1 < min_xl) min_xl=xl1;
     if (xu1 > max_xu) max_xu=xu1;
@@ -275,15 +305,15 @@ void fbst_normal(gsl_rng *r,
 
   Params par;
   par.means=means;
-  par.vars=vars;
+  par.sd=sd;
 
-  /*double ixstar=iteractive_max(&par,min_xl,max_xu);
-  double icutoff=normal_prod(Xstar->data,means,vars);
-  printf("ix* = %lg\n",ixstar);
+  double ixstar=iteractive_max(&par,min_xl,max_xu);
+  double icutoff=normal_prod(Xstar->data,means,sd);
+  printf("ix* = %lg |x*-ix*|=%lg\n",ixstar,fabs(ixstar-xstar));
 
   gsl_vector_set_all(Xstar,ixstar);
   printf("icutoff=%lg cutoff=%lg\n",icutoff,cutoff);
-  */
+ 
 
   par.cutoff=cutoff;
 
@@ -291,12 +321,20 @@ void fbst_normal(gsl_rng *r,
   double t,t_err;
 
 
-  /*gsl_monte_function F = { *normal_fun, dim, &par };
+  gsl_monte_function F = { *normal_fun, dim, &par };
   double f,f_err;
   mc_integrate1(&F,r,xl,xu,&f,&f_err,config->mc_config);
-  printf("I(f)=%lg+-%le\n",f,f_err);*/
+  printf("I(f)=%lg+-%le\n",f,f_err);
   
   mc_integrate1(&T,r,xl,xu,&t,&t_err,config->mc_config);
+
+  double norm=pow(2*M_PI,((float)dim)/2.0);
+
+  for(i=0;i<dim;i++) {
+    norm*=ELTd(sd,i);
+  }
+
+  t/=norm;
 
   free(xl);
   free(xu);
@@ -324,22 +362,22 @@ void fbst_loginorm(gsl_rng *r,
   assert(x->size == sums->size);
 
   gsl_vector *means=gsl_vector_alloc(x->size);
-  gsl_vector *vars=gsl_vector_alloc(x->size);
+  gsl_vector *sd=gsl_vector_alloc(x->size);
 
   
   for(i=0;i<x->size;i++) {
     a=ELT(x,i)+alpha;
     b=ELT(sums,i)+beta-a;
-    mean=gsl_sf_psi(a)+gsl_sf_psi(b);
+    mean=gsl_sf_psi(a)-gsl_sf_psi(b);
     var=gsl_sf_psi_1(a)+gsl_sf_psi_1(b);
 
     printf("x%i=N(%lg %lg)\n",i,mean,var);
 
     gsl_vector_set(means,i,mean);
-    gsl_vector_set(vars,i,var);
+    gsl_vector_set(sd,i,var);
   }
 
-  fbst_normal(r,means,vars,_ev,_err,config);
+  fbst_normal(r,means,sd,_ev,_err,config);
   gsl_vector_free(means);
-  gsl_vector_free(vars);  
+  gsl_vector_free(sd);  
 }
