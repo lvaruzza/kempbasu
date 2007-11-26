@@ -172,12 +172,12 @@ typedef struct {
 
 static double tangent_region_fun (double *p, size_t dim, void *_params) {
   Params *par=(Params*)_params;
-  double val=normal_prod(p,par->means,par->sd);
+  double val=mahalanobis(p,par->means,par->sd);
 
   //return val;
 
-  if (val > par->cutoff) {
-    return val;
+  if (val < par->cutoff) {
+    return exp(-val);
   } else {
     return 0;
   }
@@ -266,22 +266,11 @@ void fbst_normal(gsl_rng *r,
   }
   
   double xstar=normal_null_maximum(means,sd);
-  gsl_vector *Xstar=gsl_vector_alloc(means->size);
-  gsl_vector_set_all(Xstar,xstar);
   printf("x*=%lg\n",xstar);
 
-  double cutoff=normal_prod(Xstar->data,means,sd);
+  double lcutoff=mahalanobis1d(xstar,means,sd);
   double max=normal_prod(means->data,means,sd);
-  printf("cutoff=%lg max=%lg\n",cutoff,max);
-
-  gsl_vector_set_all(Xstar,xstar+ELTd(sd,0)/10.0);
-  double cutoff2=normal_prod(Xstar->data,means,sd);
-
-  gsl_vector_set_all(Xstar,xstar-ELTd(sd,0)/10.0);
-  double cutoff3=normal_prod(Xstar->data,means,sd);
-
-  printf("cutoff=%lg  +s/10=%lg  -s/10=%fl\n",cutoff,cutoff2,cutoff3);
-
+  printf("lcutoff=%lg lmax=%lg\n",lcutoff,log(max));
 
   double *xl = (double*)malloc(dim*sizeof(double));
   double *xu = (double*)malloc(dim*sizeof(double));
@@ -307,24 +296,22 @@ void fbst_normal(gsl_rng *r,
   par.means=means;
   par.sd=sd;
 
-  double ixstar=iteractive_max(&par,min_xl,max_xu);
-  double icutoff=normal_prod(Xstar->data,means,sd);
+  /*double ixstar=iteractive_max(&par,min_xl,max_xu);
+  double licutoff=mahalanobis1d(ixstar,means,sd);
   printf("ix* = %lg |x*-ix*|=%lg\n",ixstar,fabs(ixstar-xstar));
-
-  gsl_vector_set_all(Xstar,ixstar);
-  printf("icutoff=%lg cutoff=%lg\n",icutoff,cutoff);
+  printf("licutoff=%lg lcutoff=%lg\n",licutoff,lcutoff);*/
  
 
-  par.cutoff=cutoff;
+  par.cutoff=lcutoff;
 
   gsl_monte_function T = { *tangent_region_fun, dim, &par };
   double t,t_err;
 
 
-  gsl_monte_function F = { *normal_fun, dim, &par };
+  /*gsl_monte_function F = { *normal_fun, dim, &par };
   double f,f_err;
   mc_integrate1(&F,r,xl,xu,&f,&f_err,config->mc_config);
-  printf("I(f)=%lg+-%le\n",f,f_err);
+  printf("I(f)=%lg+-%le\n",f,f_err);*/
   
   mc_integrate1(&T,r,xl,xu,&t,&t_err,config->mc_config);
 
