@@ -18,9 +18,6 @@
 
 (declaim (optimize (speed 3) (debug 0) (safety 0) (space 0) (compilation-speed 0)))
 
-(defmacro random-uniform ()
-  ` (random 1d0))
-
 ;; static double
 ;; gamma_large (const gsl_rng * r, const double a)
 ;; {
@@ -167,7 +164,7 @@
     (tagbody
      start
        (setf u (random-uniform))
-       (setf v (random-pos 1d0))
+       (setf v (random-pos))
        (if (< u p)
 	   (progn
 	     (setf x (exp (* (/ 1d0 a)  (log v))))

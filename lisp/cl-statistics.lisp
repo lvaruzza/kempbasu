@@ -94,7 +94,7 @@
 ;;;   mean-sd-n, square, choose, permutations, round-float
 
 
-(declaim (optimize (speed 3) (safety 1) (debug 1)))
+(declaim (optimize (speed 3) (safety 2) (debug 1)))
 
 (in-package :statistics)
 
@@ -1752,7 +1752,7 @@ function in section 13.4."
 		    qam (- a 1d0)
 		    bz  (- 1d0 (/ (* qab x) qap)))
 	      (dotimes (m ITMAX)
-		(setf em   (float (1+ m))
+		(setf em   (+ 1d0 m)
 		      tem  (+ em em)
 		      d    (/ (* em (- b em) x)
 			      (* (+ qam tem) (+ a tem)))
