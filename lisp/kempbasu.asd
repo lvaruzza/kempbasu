@@ -11,8 +11,11 @@
   :license "GPLv3"
   :serial t
   :components ((:file "packages")
+	       (:file "util")
 	       (:file "cl-statistics")
 	       (:file "IO")
 	       (:file "matrix")
+	       ;;(:file "gnuplot")
+	       (:file "randist-gamma")
 	       (:file "kemp")
 	       (:file "basu")))

@@ -22,5 +22,11 @@ xm1 ... xmn"
   (collect-lines file #'(lambda (x)
 			  (split-sequence delimiter x))))
 
-
-
+ (def-input-fun read-matrix-as-vectors (file &optional (delimiter #\Tab))
+   "Read a matrix of delimited fields, with the same number of the fields (determined by the first line).
+OBS: If the last field is empty, it's ignored"
+   (multiple-value-bind (first-line n) (read-delimited->array (read-line file))
+     (nconc (list first-line)
+	    (collect-lines file #'(lambda (x)
+				    (read-delimited->array1 x delimiter n))))))
+				  

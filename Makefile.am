@@ -1,7 +1,7 @@
 AM_CFLAGS = @GSL_CFLAGS@
 ## Makefile.am -- Process this file with automake to produce Makefile.in
 
-bin_PROGRAMS = kemp.bin basu.bin pvalue_ab P-value2d pvalue_graph loginorm
+bin_PROGRAMS = kemp.bin basu.bin pvalue_ab P-value2d pvalue_graph loginorm gamma_test
 kemp_bin_SOURCES = kempbasu.c fbst-poisson.c integrate.c P-value.c pvalue.c matrix.c alpha.c matrix.h kempbasu.h params.h
 kemp_bin_LDADD = @GSL_LIBS@ -lJudy @PTHREAD_LIBS@ -lm
 kemp_bin_CFLAGS = -DKEMP @GSL_CFLAGS@ @PTHREAD_CFLAGS@
@@ -21,3 +21,6 @@ pvalue_graph_LDADD = @GSL_LIBS@ -lm
 
 loginorm_SOURCES = loginorm.c matrix.c
 loginorm_LDADD = @GSL_LIBS@ -lm
+
+gamma_test_SOURCES = gamma_test.c
+gamma_test_LDADD = @GSL_LIBS@ -lm

@@ -180,9 +180,9 @@
   "Protects against floating point underflow errors and sets the value to 0.0 instead."
   `(handler-case 
        (progn ,@body)
-       (floating-point-underflow (condition)
-	(declare (ignore condition))
-	(values 0.0d0))))
+     (floating-point-underflow (condition)
+       (declare (ignore condition))
+       (values 0.0d0))))
 
 
 ) ;end eval-when
@@ -1016,7 +1016,7 @@
          (expected-lt-5 0)
          (expected-lt-1 0)
          (expected-values (make-array (list rows columns)
-                                      :element-type 'single-float))
+                                      :element-type 'double-float))
          (x2 0.0))
     (dotimes (i rows)
       (dotimes (j columns)
