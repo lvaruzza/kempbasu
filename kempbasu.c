@@ -324,7 +324,7 @@ void save_results(char *out_filename) {
 
   // Output Header
   if (calculate_pvalue) {
-    fprintf(out,"pvalue\tscore\tcategory");
+    fprintf(out,"pvalue\talpha\tscore\tcategory");
     if (calculate_evalue) {
       fprintf(out,"\t");
     }
@@ -351,11 +351,12 @@ void save_results(char *out_filename) {
 
       if (pvalue >= alpha) {
 	category="U";
-	score=10.0*results[i]->pvalue_beta_score;
+	score=-10.0*results[i]->pvalue_beta_score;
       }
 
-      fprintf(out,"%g\t%g\t%s",
+      fprintf(out,"%g\t%g\t%g\t%s",
 	      pvalue,
+	      alpha,
 	      score,
 	      category);
 

@@ -88,6 +88,7 @@ void pvalue(gsl_rng * r,
   }
   printf("N=%i\n",N);
 
+
   double *p=(double*)malloc(sizeof(double)*dim);
 
   for(i=0;i<dim;i++) {
@@ -120,7 +121,9 @@ void pvalue(gsl_rng * r,
 
   *_pvalue=pvalue;
   pvalue_alpha_beta(N,4,1,_alpha,_beta_score);
-
+  if (N!=0) {
+    *_alpha=0.07/sqrt(N);
+  }
   *_alpha_score=1.0-pvalue/(*_alpha);
 
   fprintf (stderr,"\n");
